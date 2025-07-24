@@ -45,12 +45,12 @@ export default function VotePage() {
 
     setIsSubmitting(true)
     try {
-      // Utiliser les actions temps réel
+      // Utiliser les actions temps réel qui appellent les API
       let successCount = 0
-      Object.entries(votes).forEach(([artistId, selectedOption]) => {
-        const success = actions.vote(artistId, selectedOption, navigator.userAgent)
+      for (const [artistId, selectedOption] of Object.entries(votes)) {
+        const success = await actions.vote(artistId, selectedOption, navigator.userAgent)
         if (success) successCount++
-      })
+      }
 
       if (successCount > 0) {
         setHasVoted(true)
@@ -64,7 +64,7 @@ export default function VotePage() {
       }
     } catch (error) {
       console.error("Error submitting votes:", error)
-      alert("❌ Erreur de connexion")
+      alert("❌ Erreur de connexion ou de soumission des votes")
     } finally {
       setIsSubmitting(false)
     }

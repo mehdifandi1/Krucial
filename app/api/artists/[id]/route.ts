@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { kvStore } from "@/lib/kv-store" // Importe le nouveau kvStore
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params
-    const success = database.deleteArtist(id)
+    const success = await kvStore.deleteArtist(id) // Utilise kvStore
 
     if (success) {
       return NextResponse.json({ success: true })

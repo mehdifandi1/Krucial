@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { kvStore } from "@/lib/kv-store" // Importe le nouveau kvStore
 
 export async function GET() {
   try {
-    const state = database.getState()
+    const state = await kvStore.getState() // Utilise kvStore
 
     const response = NextResponse.json({
       history: state.voteHistory,

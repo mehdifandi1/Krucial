@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { kvStore } from "@/lib/kv-store" // Importe le nouveau kvStore
 
 export async function POST(request: Request) {
   try {
@@ -12,16 +12,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid votes data" }, { status: 400 })
     }
 
-    // Traiter chaque vote
     let successCount = 0
-    Object.entries(votes).forEach(([artistId, selectedOption]) => {
+    for (const [artistId, selectedOption] of Object.entries(votes)) {
       if (typeof selectedOption === "string") {
-        const success = database.updateArtistVotes(artistId, selectedOption, userAgent || "")
+        const success = await kvStore.updateArtistVotes(artistId, selectedOption, userAgent || "") // Utilise kvStore
         if (success) {
           successCount++
         }
       }
-    })
+    }
 
     console.log(`API - ${successCount} votes recorded successfully`)
 

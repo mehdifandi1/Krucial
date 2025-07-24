@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { kvStore } from "@/lib/kv-store" // Importe le nouveau kvStore
 
 export async function GET() {
   try {
-    const state = database.getState()
+    const state = await kvStore.getState() // Utilise kvStore
 
     const response = NextResponse.json({
       artists: state.artists,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields or invalid options" }, { status: 400 })
     }
 
-    const result = database.addArtist({ name, timeSlot, options })
+    const result = await kvStore.addArtist({ name, timeSlot, options }) // Utilise kvStore
 
     const response = NextResponse.json(result)
     response.headers.set("Cache-Control", "no-store")

@@ -33,7 +33,6 @@ import {
 import { BackgroundEffects } from "@/components/background-effects"
 import { KrucialLogo } from "@/components/krucial-logo"
 import { useRealTimeData } from "@/hooks/useRealTimeData"
-import { database } from "@/lib/database"
 
 export default function AdminPage() {
   const { artists, voteHistory, globalVotingEnabled, isConnected, actions, lastUpdate } = useRealTimeData()
@@ -61,17 +60,22 @@ export default function AdminPage() {
     window.location.href = "/admin/login"
   }
 
-  const handleForceReset = () => {
+  const handleForceReset = async () => {
     if (confirm("🔄 Réinitialiser avec les données par défaut ? (Cela supprimera tous les votes)")) {
-      database.forceReset()
-      alert("✅ Base de données réinitialisée avec les nouvelles données !")
+      try {
+        await actions.forceResetKV() // Utilise la nouvelle action
+        alert("✅ Base de données réinitialisée avec les nouvelles données !")
+      } catch (error) {
+        console.error("Error forcing KV reset:", error)
+        alert("❌ Erreur lors de la réinitialisation de la base de données.")
+      }
     }
   }
 
   const handleToggleGlobalVoting = async () => {
     setIsLoading(true)
     try {
-      actions.toggleGlobalVoting(!globalVotingEnabled)
+      await actions.toggleGlobalVoting(!globalVotingEnabled)
     } catch (error) {
       console.error("Error toggling global voting:", error)
     } finally {
@@ -81,7 +85,7 @@ export default function AdminPage() {
 
   const handleToggleArtistVoting = async (artistId: string, isBlocked: boolean) => {
     try {
-      actions.toggleArtistBlocked(artistId, !isBlocked)
+      await actions.toggleArtistBlocked(artistId, !isBlocked)
     } catch (error) {
       console.error("Error toggling artist voting:", error)
     }
@@ -95,7 +99,7 @@ export default function AdminPage() {
 
     setIsLoading(true)
     try {
-      actions.addArtist(newArtist)
+      await actions.addArtist(newArtist)
       setNewArtist({ name: "", timeSlot: "", options: ["", ""] })
     } catch (error) {
       console.error("Error adding artist:", error)
@@ -107,7 +111,7 @@ export default function AdminPage() {
   const handleDeleteArtist = async (id: string, name: string) => {
     if (confirm(`🗑️ Supprimer "${name}" ?`)) {
       try {
-        const success = actions.deleteArtist(id)
+        const success = await actions.deleteArtist(id)
         if (!success) {
           alert("❌ Erreur lors de la suppression")
         }
@@ -122,7 +126,7 @@ export default function AdminPage() {
     if (confirm("🔄 Réinitialiser TOUS les votes ?")) {
       setIsLoading(true)
       try {
-        actions.resetAllVotes()
+        await actions.resetAllVotes()
       } catch (error) {
         console.error("Error resetting votes:", error)
       } finally {
