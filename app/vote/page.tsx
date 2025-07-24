@@ -13,7 +13,15 @@ import { KrucialLogo } from "@/components/krucial-logo"
 import { useRealTimeData } from "@/hooks/useRealTimeData"
 
 export default function VotePage() {
-  const { artists, globalVotingEnabled, isConnected, actions, lastUpdate } = useRealTimeData()
+  const {
+    artists,
+    globalVotingEnabled,
+    isConnected,
+    actions,
+    lastUpdate,
+    error: dataError,
+    source, // Pour afficher la source des données (KV)
+  } = useRealTimeData()
   const [votes, setVotes] = useState<{ [key: string]: string }>({})
   const [hasVoted, setHasVoted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -45,14 +53,9 @@ export default function VotePage() {
 
     setIsSubmitting(true)
     try {
-      // Utiliser les actions temps réel
-      let successCount = 0
-      Object.entries(votes).forEach(([artistId, selectedOption]) => {
-        const success = actions.vote(artistId, selectedOption, navigator.userAgent)
-        if (success) successCount++
-      })
+      const success = await actions.voteMultiple(votes, navigator.userAgent)
 
-      if (successCount > 0) {
+      if (success) {
         setHasVoted(true)
         // Reset automatique après 5 secondes
         setTimeout(() => {
@@ -64,7 +67,7 @@ export default function VotePage() {
       }
     } catch (error) {
       console.error("Error submitting votes:", error)
-      alert("❌ Erreur de connexion")
+      alert("❌ Erreur de connexion à Vercel KV. Veuillez réessayer.")
     } finally {
       setIsSubmitting(false)
     }
@@ -150,6 +153,13 @@ export default function VotePage() {
               >
                 {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               </Badge>
+              <Badge
+                variant="outline"
+                className={`${isConnected ? "border-custom-green text-custom-green" : "border-red-500 text-red-400"} text-xs`}
+              >
+                <Clock className="w-3 h-3 mr-1" />
+                {source === "kv" ? "KV" : "Déconnecté"}
+              </Badge>
               <Button
                 onClick={() => (window.location.href = "/admin")}
                 className="bg-gray-800/80 hover:bg-gray-700/80 text-custom-green border border-custom-green/30"
@@ -163,6 +173,22 @@ export default function VotePage() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-6">
+        {/* Message d'erreur de connexion au backend */}
+        {!isConnected && dataError && (
+          <Card className="bg-red-900/20 border-red-500/50 backdrop-blur-sm mb-6">
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-red-400">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-semibold">Erreur de connexion à Vercel KV:</span>
+              </div>
+              <p className="text-red-300 text-sm mt-2">{dataError}</p>
+              <p className="text-gray-400 text-xs mt-2">
+                Veuillez vérifier que vos variables d'environnement Upstash sont correctement configurées.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status Global */}
         {!globalVotingEnabled && (
           <div className="mb-6">
@@ -218,9 +244,8 @@ export default function VotePage() {
                   <div className="flex items-center justify-center gap-3 mb-2">
                     <div
                       className={`w-4 h-4 rounded-full ${artist.isBlocked ? "bg-red-500" : "bg-custom-green"} ${!artist.isBlocked ? "pulse-green" : ""}`}
-                    ></div>
-                    <h3 className="text-2xl font-bold text-white">{artist.name}</h3>
-                    {artist.totalVotes > 0 && <div className="w-3 h-3 bg-custom-green rounded-full animate-ping"></div>}
+                    />
+                    {artist.totalVotes > 0 && <div className="w-3 h-3 bg-custom-green rounded-full animate-ping" />}
                   </div>
                   <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
                     <Clock className="w-4 h-4 text-custom-green" />

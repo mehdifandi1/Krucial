@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { toggleArtistBlocked } from "@/lib/kv-store" // Utilise le nouveau store KV
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -7,7 +7,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const body = await request.json()
     const { isBlocked } = body
 
-    const success = database.toggleArtistBlocked(id, isBlocked)
+    const success = await toggleArtistBlocked(id, isBlocked) // Appel asynchrone
 
     if (success) {
       return NextResponse.json({ success: true, isBlocked })

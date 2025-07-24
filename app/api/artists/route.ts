@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
-import { database } from "@/lib/database"
+import { getArtists } from "@/lib/kv-store" // Utilise le nouveau store KV
 
 export async function GET() {
   try {
-    const state = database.getState()
+    const artists = await getArtists() // Appel asynchrone
 
     const response = NextResponse.json({
-      artists: state.artists,
-      globalVotingEnabled: state.globalVotingEnabled,
-      timestamp: state.lastUpdate,
+      artists: artists,
+      timestamp: Date.now(), // Le timestamp est généré ici pour le client
     })
 
     // Headers pour éviter le cache
@@ -23,23 +22,5 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const { name, timeSlot, options } = body
-
-    if (!name || !timeSlot || !options || options.length !== 2) {
-      return NextResponse.json({ error: "Missing required fields or invalid options" }, { status: 400 })
-    }
-
-    const result = database.addArtist({ name, timeSlot, options })
-
-    const response = NextResponse.json(result)
-    response.headers.set("Cache-Control", "no-store")
-
-    return response
-  } catch (error) {
-    console.error("Error adding artist:", error)
-    return NextResponse.json({ error: "Failed to add artist" }, { status: 500 })
-  }
-}
+// POST route for artists is now handled by app/api/admin/artists/route.ts
+// This file only needs GET for public access

@@ -3,15 +3,18 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Users, Music, Zap, Star, TrendingUp, Shield, Wifi, WifiOff } from "lucide-react"
+import { Clock, Users, Music, Zap, Star, TrendingUp, Shield, Wifi, WifiOff, AlertTriangle } from "lucide-react"
 import { BackgroundEffects } from "@/components/background-effects"
 import { KrucialLogo } from "@/components/krucial-logo"
 import { useRealTimeData } from "@/hooks/useRealTimeData"
 
 export default function HomePage() {
-  const { artists, isConnected, lastUpdate } = useRealTimeData()
+  const { artists, isConnected, lastUpdate, source, message, error: dataError } = useRealTimeData()
 
   const totalVotes = artists.reduce((sum, artist) => sum + artist.totalVotes, 0)
+
+  // Afficher une alerte si le backend n'est pas connecté
+  const showKVConnectionWarning = !isConnected && dataError
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 relative overflow-hidden">
@@ -28,8 +31,8 @@ export default function HomePage() {
         </Button>
       </div>
 
-      {/* Indicateur de connexion */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* Indicateurs de statut */}
+      <div className="fixed top-4 left-4 z-50 flex gap-2">
         <Badge
           variant="outline"
           className={`${isConnected ? "border-custom-green text-custom-green" : "border-red-500 text-red-400"}`}
@@ -37,11 +40,39 @@ export default function HomePage() {
           {isConnected ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
           {isConnected ? "Connecté" : "Déconnecté"}
         </Badge>
+        <Badge
+          variant="outline"
+          className={`${isConnected ? "border-custom-green text-custom-green" : "border-red-500 text-red-400"}`}
+        >
+          <Clock className="w-3 h-3 mr-1" />
+          {source === "kv" ? "KV" : "Déconnecté"}
+        </Badge>
       </div>
+
+      {/* Alerte connexion backend */}
+      {showKVConnectionWarning && (
+        <div className="fixed top-16 left-4 right-4 z-40">
+          <Card className="bg-red-900/20 border-red-500/50 backdrop-blur-sm">
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <p className="text-red-400 text-lg font-bold">Vercel KV Déconnecté</p>
+              </div>
+              <p className="text-red-300 text-sm mb-4">
+                {message || "Impossible de se connecter à Vercel KV. Les données ne sont pas synchronisées."}
+              </p>
+              <p className="text-gray-400 text-xs mt-2">
+                Veuillez vous assurer que vos variables d'environnement Upstash (`KV_REST_API_URL`, `KV_REST_API_TOKEN`)
+                sont correctement configurées sur Vercel.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12 slide-in">
+        <div className="text-center mb-12 slide-in" style={{ marginTop: showKVConnectionWarning ? "120px" : "0" }}>
           <div className="mb-6">
             <KrucialLogo className="mx-auto" />
           </div>
@@ -63,7 +94,7 @@ export default function HomePage() {
             </Badge>
             <Badge variant="outline" className="border-custom-green text-custom-green bg-custom-green/10 px-4 py-2">
               <Clock className="w-4 h-4 mr-2" />
-              Temps réel
+              Temps réel (KV)
             </Badge>
             <Badge variant="outline" className="border-custom-green text-custom-green bg-custom-green/10 px-4 py-2">
               <Users className="w-4 h-4 mr-2" />
@@ -77,7 +108,7 @@ export default function HomePage() {
 
           {/* Timestamp de dernière mise à jour */}
           <div className="text-xs text-gray-500 mb-8">
-            Dernière mise à jour: {new Date(lastUpdate).toLocaleTimeString()}
+            Dernière mise à jour: {new Date(lastUpdate).toLocaleTimeString()} ({source || "unknown"})
           </div>
         </div>
 
@@ -121,7 +152,7 @@ export default function HomePage() {
                           className="bg-gray-800 text-gray-300 border-gray-600 hover:border-custom-green/50 transition-colors"
                         >
                           <Music className="w-3 h-3 mr-1" />
-                          {option}
+                          {option.split(" → ")[0]}
                         </Badge>
                       ))}
                     </div>
@@ -159,7 +190,7 @@ export default function HomePage() {
           </Button>
 
           <div className="mt-6 text-sm text-gray-400">
-            <p>🎧 Interface optimisée • 🚀 Résultats en temps réel • 🎵 Expérience immersive</p>
+            <p>🎧 Interface optimisée • 🚀 Résultats en temps réel (KV) • 🎵 Expérience immersive</p>
           </div>
         </div>
       </div>
