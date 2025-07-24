@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { resetAllVotes } from "@/lib/kv-store" // Utilise le nouveau store KV
+import { database } from "@/lib/database"
 
 export async function POST() {
   try {
-    await resetAllVotes() // Appel asynchrone
+    database.resetAllVotes()
     return NextResponse.json({ success: true, message: "Tous les votes ont été réinitialisés" })
   } catch (error) {
     console.error("Error resetting votes:", error)

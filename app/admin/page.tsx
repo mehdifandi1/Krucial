@@ -28,22 +28,15 @@ import {
   Volume2,
   Wifi,
   WifiOff,
+  RotateCcw,
 } from "lucide-react"
 import { BackgroundEffects } from "@/components/background-effects"
 import { KrucialLogo } from "@/components/krucial-logo"
 import { useRealTimeData } from "@/hooks/useRealTimeData"
+import { database } from "@/lib/database"
 
 export default function AdminPage() {
-  const {
-    artists,
-    voteHistory,
-    globalVotingEnabled,
-    isConnected,
-    actions,
-    lastUpdate,
-    error: dataError,
-    source, // Pour afficher la source des données (KV)
-  } = useRealTimeData()
+  const { artists, voteHistory, globalVotingEnabled, isConnected, actions, lastUpdate } = useRealTimeData()
   const [newArtist, setNewArtist] = useState({
     name: "",
     timeSlot: "",
@@ -68,13 +61,19 @@ export default function AdminPage() {
     window.location.href = "/admin/login"
   }
 
+  const handleForceReset = () => {
+    if (confirm("🔄 Réinitialiser avec les données par défaut ? (Cela supprimera tous les votes)")) {
+      database.forceReset()
+      alert("✅ Base de données réinitialisée avec les nouvelles données !")
+    }
+  }
+
   const handleToggleGlobalVoting = async () => {
     setIsLoading(true)
     try {
-      await actions.toggleGlobalVoting(!globalVotingEnabled)
+      actions.toggleGlobalVoting(!globalVotingEnabled)
     } catch (error) {
       console.error("Error toggling global voting:", error)
-      alert("❌ Erreur lors du changement de l'état global des votes.")
     } finally {
       setIsLoading(false)
     }
@@ -82,10 +81,9 @@ export default function AdminPage() {
 
   const handleToggleArtistVoting = async (artistId: string, isBlocked: boolean) => {
     try {
-      await actions.toggleArtistBlocked(artistId, !isBlocked)
+      actions.toggleArtistBlocked(artistId, !isBlocked)
     } catch (error) {
       console.error("Error toggling artist voting:", error)
-      alert("❌ Erreur lors du changement de l'état de vote de l'artiste.")
     }
   }
 
@@ -97,11 +95,10 @@ export default function AdminPage() {
 
     setIsLoading(true)
     try {
-      await actions.addArtist(newArtist)
+      actions.addArtist(newArtist)
       setNewArtist({ name: "", timeSlot: "", options: ["", ""] })
     } catch (error) {
       console.error("Error adding artist:", error)
-      alert("❌ Erreur lors de l'ajout de l'artiste.")
     } finally {
       setIsLoading(false)
     }
@@ -110,13 +107,13 @@ export default function AdminPage() {
   const handleDeleteArtist = async (id: string, name: string) => {
     if (confirm(`🗑️ Supprimer "${name}" ?`)) {
       try {
-        const success = await actions.deleteArtist(id)
+        const success = actions.deleteArtist(id)
         if (!success) {
           alert("❌ Erreur lors de la suppression")
         }
       } catch (error) {
         console.error("Error deleting artist:", error)
-        alert("❌ Erreur lors de la suppression de l'artiste.")
+        alert("❌ Erreur lors de la suppression")
       }
     }
   }
@@ -125,10 +122,9 @@ export default function AdminPage() {
     if (confirm("🔄 Réinitialiser TOUS les votes ?")) {
       setIsLoading(true)
       try {
-        await actions.resetAllVotes()
+        actions.resetAllVotes()
       } catch (error) {
         console.error("Error resetting votes:", error)
-        alert("❌ Erreur lors de la réinitialisation des votes.")
       } finally {
         setIsLoading(false)
       }
@@ -199,14 +195,7 @@ export default function AdminPage() {
                 className={`${isConnected ? "border-custom-green text-custom-green" : "border-red-500 text-red-400"}`}
               >
                 {isConnected ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
-                {isConnected ? "Connecté" : "Déconnecté"}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={`${isConnected ? "border-custom-green text-custom-green" : "border-red-500 text-red-400"}`}
-              >
-                <Clock className="w-3 h-3 mr-1" />
-                {source === "kv" ? "KV" : "Déconnecté"}
+                {isConnected ? "Sync" : "Off"}
               </Badge>
               <Button
                 onClick={logout}
@@ -238,24 +227,16 @@ export default function AdminPage() {
             <History className="w-4 h-4 mr-1" />
             Historique ({voteHistory.length})
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleForceReset}
+            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Reset DB
+          </Button>
         </div>
-
-        {/* Message d'erreur de connexion au backend */}
-        {!isConnected && dataError && (
-          <Card className="bg-red-900/20 border-red-500/50 backdrop-blur-sm mb-6">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 text-red-400">
-                <AlertCircle className="w-5 h-5" />
-                <span className="font-semibold">Erreur de connexion à Vercel KV:</span>
-              </div>
-              <p className="text-red-300 text-sm mt-2">{dataError}</p>
-              <p className="text-gray-400 text-xs mt-2">
-                Vérifiez que vos variables d'environnement Upstash (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) sont
-                correctement configurées sur Vercel.
-              </p>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Contrôles globaux */}
         <Card className="bg-gray-900/80 border-gray-700 backdrop-blur-sm mb-6">
@@ -268,7 +249,7 @@ export default function AdminPage() {
               <div className="flex items-center gap-3">
                 <Button
                   onClick={handleToggleGlobalVoting}
-                  disabled={isLoading || !isConnected}
+                  disabled={isLoading}
                   size="sm"
                   className={`${
                     globalVotingEnabled
@@ -290,7 +271,7 @@ export default function AdminPage() {
                 </Button>
                 <Button
                   onClick={handleResetVotes}
-                  disabled={isLoading || !isConnected}
+                  disabled={isLoading}
                   variant="destructive"
                   size="sm"
                   className="bg-red-600 hover:bg-red-700"
@@ -384,7 +365,7 @@ export default function AdminPage() {
                         <span className="text-white font-medium">{vote.artistName}</span>
                         <span className="text-custom-green ml-2">{vote.selectedOption}</span>
                       </div>
-                      <div className="text-gray-400 text-xs">{new Date(vote.createdAt).toLocaleString()}</div>
+                      <div className="text-gray-400 text-xs">{new Date(vote.timestamp).toLocaleString()}</div>
                     </div>
                   ))}
                 {voteHistory.length === 0 && (

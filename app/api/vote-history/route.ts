@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
-import { getVoteHistory } from "@/lib/kv-store" // Utilise le nouveau store KV
+import { database } from "@/lib/database"
 
 export async function GET() {
   try {
-    const history = await getVoteHistory() // Appel asynchrone
+    const state = database.getState()
 
     const response = NextResponse.json({
-      history: history,
-      count: history.length,
+      history: state.voteHistory,
+      count: state.voteHistory.length,
     })
 
     // Headers pour éviter le cache

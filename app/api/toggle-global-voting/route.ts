@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { toggleGlobalVoting } from "@/lib/kv-store" // Utilise le nouveau store KV
+import { database } from "@/lib/database"
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { enabled } = body
 
-    const newState = await toggleGlobalVoting(enabled) // Appel asynchrone
+    const newState = database.toggleGlobalVoting(enabled)
 
     return NextResponse.json({
       success: true,
